@@ -1,0 +1,152 @@
+---
+title: "Peak Bloom Prediction Using Stepwise Regression"
+author: "Wenhuan Xu"
+date: "02/25/2025"
+lang: en-US
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, 
+                      message = FALSE,
+                      fig.align = 'center',
+                      out.width = '80%')
+```
+
+## Instructions
+
+This report presents a prediction of the **Day of Year (DOY)** for cherry blossom peak bloom in **five cities** for 2025 using a **stepwise regression ensemble model**.
+The model is based on key climate variables derived from past data.
+
+The dataset used in this analysis is:
+
+-   **`5cities_Weather_Summary_2025_final.csv`** -- Contains climate indicators for the five cities.
+
+```{r}
+#| eval: false
+# Load necessary libraries
+library(dplyr)
+library(readr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+## Loading the data
+
+We begin by loading the **2025 climate data**:
+
+```{r}
+# Load dataset
+file_path <- "5cities_Weather_Summary_2025_final.csv"
+
+# Check if file exists
+if (!file.exists(file_path)) {
+  stop("File not found: 5cities_Weather_Summary_2025_final.csv")
+}
+
+df <- read_csv(file_path)
+
+# Display first few rows
+head(df)
+```
+
+## Defining the Ensemble Model
+
+The **stepwise regression ensemble model** predicts **DOY** using the following climate variables:
+
+Predicted_DOY=125.973+(−0.068×GDD5_cum)+(−2.948×TMAX)+(−0.468×CODE0)+(−0.37×CODE2)+(0.543×CODE63)+(−0.758×WIND)+(9.223×EVPR)+(0.213×CODE51)
+
+This ensemble model was developed by comparing stepwise regression, gradient boosted trees (GBT), random forest, and linear regression through **leave-one-year-out cross-validation**, with stepwise regression showing the lowest overall MSE despite occasional strong yearly performance from GBT.
+Linear stepwise regression was selected after testing quadratic terms and interactions, as it provided the most stable predictions.
+Separate models for Kyoto, Liestal, and Washington DC were initially built, but combining them into an **ensemble model** further improved accuracy.
+The final equation balances interpretability and performance: for example, a 10-unit increase in cumulative spring GDD5 (GDD5_cum) advances the predicted bloom date by **0.68 days**, while higher spring maximum temperatures (TMAX) delay flowering.
+Weather codes (e.g., CODE63 for moderate rain) and environmental factors (e.g., wind speed) were retained to capture localized climatic effects.
+
+The meaning of each predictor:GDD5_cum: DD>5 cumulation in spring.
+
+TMAX: average spring daily maximum temperature
+
+WIND: wind speed
+
+EVPR: evoporation
+
+CODE0: Cler sky
+
+CODE2: Partly cloudy
+
+CODE63: Moderate rain
+
+CODE51: Light drizzle
+
+```{r}
+# Define Ensemble Model for Predicting DOY
+predict_doy_ensemble <- function(data) {
+  return(125.973 + 
+           (-0.068 * data$GDD5_cum) + 
+           (-2.948 * data$TMAX) + 
+           (-0.468 * data$CODE0) + 
+           (-0.37 * data$CODE2) + 
+           (0.543 * data$CODE63) + 
+           (-0.758 * data$WIND) + 
+           (9.223 * data$EVPR) + 
+           (0.213 * data$CODE51))
+}
+```
+
+## Predicting the peak bloom
+
+We now apply the **ensemble model** to predict the **2025 bloom DOY** for each city.
+
+```{r}
+# List of cities for ensemble prediction (with updated names)
+ensemble_cities <- c("Kyoto", "Liestal", "Washington", "Vancouver", "NewYorkCity")
+
+# Filter dataset for selected cities
+df_filtered <- df %>% filter(City %in% ensemble_cities)
+
+# Apply Ensemble Model to Predict DOY
+df_filtered$Predicted_DOY <- predict_doy_ensemble(df_filtered)
+
+# Check results
+head(df_filtered)
+```
+
+## Formatting the Results
+
+We restructure the results into a table where **each city has its own column**
+
+```{r}
+# Reshape data to required format
+df_reshaped <- df_filtered %>%
+  select(Year, City, Predicted_DOY) %>%
+  pivot_wider(names_from = City, values_from = Predicted_DOY) %>%
+  rename(WashingtonDC = Washington, NewYorkCity = NewYorkCity)  # Adjust city names
+
+# Round values to 2 decimal places
+df_reshaped <- df_reshaped %>% mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+# Display formatted results
+df_reshaped
+```
+
+Final Output: Predicted Bloom DOY for 2025
+
+```{r}
+# Print formatted results
+print(df_reshaped)
+# Save results as CSV file
+output_file <- "Predicted_DOY_Formatted_2025.csv"
+write.csv(df_reshaped, output_file, row.names = FALSE)
+
+# Completion message
+cat("Results saved to:", output_file, "\n")
+
+```

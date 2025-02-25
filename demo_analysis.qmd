@@ -1,5 +1,5 @@
 ---
-title: "Peak Bloom Prediction Demo"
+title: "Peak Bloom Prediction Stepwise regression"
 author: "Eager Learner"
 date: "01/05/2024"
 lang: en-US
@@ -23,7 +23,7 @@ In this analysis we demonstrate a simple way of predicting the peak bloom date o
 The models are simple in that they only use the past bloom dates observed at each location---no other covariates or additional information are considered.
 At the end of this document ([Appendix A](#appendix-rnoaa)), we demonstrate a simple way to get historic temperature data for the four locations via the [NOAA web API](https://www.ncdc.noaa.gov/cdo-web/).
 
-For this demo analysis we are using methods from the _tidyverse_ of R packages.
+For this demo analysis we are using methods from the *tidyverse* of R packages.
 They can be installed via
 
 ```{r}
@@ -37,7 +37,6 @@ and then loaded via
 library(tidyverse)
 ```
 
-
 ## Loading the data
 
 The data for the five sites is provided as a simple text file in CSV format.
@@ -45,13 +44,13 @@ Each file contains the dates of the peak bloom of the cherry trees at the respec
 
 The six columns in each data file are
 
-* _location_ a human-readable location identifier (`string`).
-* _lat_ (approximate) latitude of the cherry trees (`double`).
-* _long_ (approximate) longitude of the cherry trees (`double`).
-* _alt_ (approximate) altitude of the cherry trees (`double`).
-* _year_ year of the observation (`integer`).
-* *bloom_date* date of peak bloom of the cherry trees (ISO 8601 date `string`). The "peak bloom date" may be defined differently for different sites
-* *bloom_doy* days since January 1st of the year until peak bloom (`integer`). January 1st corresponds to `1`.
+-   *location* a human-readable location identifier (`string`).
+-   *lat* (approximate) latitude of the cherry trees (`double`).
+-   *long* (approximate) longitude of the cherry trees (`double`).
+-   *alt* (approximate) altitude of the cherry trees (`double`).
+-   *year* year of the observation (`integer`).
+-   *bloom_date* date of peak bloom of the cherry trees (ISO 8601 date `string`). The "peak bloom date" may be defined differently for different sites
+-   *bloom_doy* days since January 1st of the year until peak bloom (`integer`). January 1st corresponds to `1`.
 
 In R, the data files can be read with `read.csv()` and concatenated with the `bind_rows()` function:
 
@@ -73,7 +72,6 @@ cherry |>
 
 ## Visualizing the time series
 
-
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -93,7 +91,7 @@ cherry |>
 ## Predicting the peak bloom
 
 A simple method to predict peak bloom date in the future is to fit a least-squares line through the observed dates and extrapolate the regression function.
-We want to have a separate line for each location, hence we tell R to estimate _interaction_ effects.
+We want to have a separate line for each location, hence we tell R to estimate *interaction* effects.
 We only use data from 1880 to fit the trends, as prior data may not be as reliable/relevant.
 Since for New York City we only have one observed bloom date, which is not enough to fit a linear regression model, we will omit the site from this simple analysis.
 
@@ -106,7 +104,7 @@ ls_fit <- lm(bloom_doy ~ 0 + location + location : year,
 ```
 
 This simple linear regression functions suggest a trend toward earlier peak bloom at the sites.
-We can compute the actual predictions using the `predict()` function and 
+We can compute the actual predictions using the `predict()` function and
 
 ```{r}
 #| fig-width: 8
@@ -188,11 +186,13 @@ predictions_vancouver <- vancouver_grid |>
 ```
 
 Not surprisingly, the predicted peak bloom date for Vancouver and NYC is now very similar to the other 3 sites:
+
 ```{r}
 predictions_vancouver
 ```
 
 We can check the predictions against the data from previous competition years.
+
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -213,6 +213,7 @@ cherry |>
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
+
 ```{r}
 predictions <- predictions |> 
   filter(location != 'vancouver') |> 
@@ -221,8 +222,7 @@ predictions <- predictions |>
 
 ## Extrapolating to New York City, NY using USA-NPN data
 
-Similar to Vancouver, BC, only few historical observations are available for our location in New York City, NY.
-There are some historical observations dating back to 2019 in the data provided by USA-NPN.
+Similar to Vancouver, BC, only few historical observations are available for our location in New York City, NY. There are some historical observations dating back to 2019 in the data provided by USA-NPN.
 The Washington Square Park has site id 32789 and the Yoshino cherry you should predict has species id 228.
 
 ```{r}
@@ -258,6 +258,7 @@ cherry_with_nyc <- cherry |>
 For 2020, no bloom was reported, hence the warning.
 
 Using the same steps as for Vancouver, BC, a simple linear model can be fitted.
+
 ```{r}
 # Fit simple least-squares lines for all sites.
 # We use larger weights for observations from NYC than for the other sites
@@ -275,6 +276,7 @@ predictions_nyc
 ```
 
 We can check the predictions against the data from previous competition years.
+
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -295,6 +297,7 @@ cherry_with_nyc |>
 ```
 
 If satisfied with the predictions, we can use them instead of the predictions from before.
+
 ```{r}
 predictions <- predictions |> 
   filter(location != 'newyorkcity') |> 
@@ -311,8 +314,6 @@ predictions |>
   mutate(predicted_date = strptime(paste(year, prediction), "%Y %j") |> 
            as_date())
 ```
-
-
 
 ## Appendix: Adding Covariates {#appendix-rnoaa}
 
@@ -335,7 +336,6 @@ NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
 NOAA_WEB_API_TOKEN <- Sys.getenv("NOAA_WEB_API_TOKEN")
 ```
 
-
 To connect to and use the web API you may use the following R packages:
 
 ```{r}
@@ -351,7 +351,7 @@ library(httr2)
 library(jsonlite)
 ```
 
-The stations closest to the sites for the competition with continuously collected maximum temperatures are USC00186350 (Washington D.C.), GME00127786 (Liestal), JA000047759 (Kyoto), CA001108395 (Vancouver) and 
+The stations closest to the sites for the competition with continuously collected maximum temperatures are USC00186350 (Washington D.C.), GME00127786 (Liestal), JA000047759 (Kyoto), CA001108395 (Vancouver) and
 
 ```{r}
 NOAA_API_BASE_URL <- "https://www.ncei.noaa.gov/cdo-web/api/v2/data"
@@ -365,7 +365,9 @@ stations <- c(
   "kyoto"        = "GHCND:JA000047759")
 ```
 
-As a simple demonstration, we retrieve the average seasonal maximum daily temperature (in 1/10 °C) from these stations using our own `get_temperature()` function, which wraps the `ghcnd_search()` function in the `rnoaa` package. (N.b. `ghcnd_search()` returns a list. Each element of the list corresponds to an element of the `var` argument.)
+As a simple demonstration, we retrieve the average seasonal maximum daily temperature (in 1/10 °C) from these stations using our own `get_temperature()` function, which wraps the `ghcnd_search()` function in the `rnoaa` package.
+(N.b. `ghcnd_search()` returns a list.
+Each element of the list corresponds to an element of the `var` argument.)
 
 ```{r}
 nested_to_tibble <- function (x) {
@@ -481,7 +483,7 @@ avg_winter_temp |>
   facet_grid(rows = vars(location))
 ```
 
-Using these average temperature, we can predict the peak bloom date again using linear regression with location-specific temporal trends and a global effect of average winter temperatures. 
+Using these average temperature, we can predict the peak bloom date again using linear regression with location-specific temporal trends and a global effect of average winter temperatures.
 
 ```{r}
 ls_fit_with_temp <- cherry |>
@@ -525,5 +527,3 @@ predictions_vancouver |>
        y = "Predicted peak bloom (days since Jan 1st) for Vancouver") +
   theme(legend.position = "bottom")
 ```
-
-
